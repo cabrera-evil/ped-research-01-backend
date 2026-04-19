@@ -1,0 +1,38 @@
+services:
+  python-template:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cabreraevil/python-template:latest
+    container_name: python-template
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Python Template API
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - API_KEY=apikey
+      - WORKERS=1
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - python-template_net
+
+networks:
+  python-template_net:
+    driver: bridge
+    name: python-template_net

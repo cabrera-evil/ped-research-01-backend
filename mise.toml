@@ -1,0 +1,61 @@
+[tools]
+python = "3.11"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.install]
+description = "Install Python dependencies"
+run = "pip install -r requirements.txt"
+
+[tasks.install-dev]
+description = "Install development dependencies"
+run = "pip install -r requirements-dev.txt"
+
+[tasks.dev]
+description = "Run development server with auto-reload"
+run = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+
+[tasks.start]
+description = "Run production server (single worker)"
+run = "uvicorn app.main:app --host ${API_HOST:-0.0.0.0} --port ${API_PORT:-8000} --timeout-keep-alive ${WORKER_TIMEOUT:-120}"
+
+[tasks.start-multi]
+description = "Run production server with multiple workers"
+run = "uvicorn app.main:app --host ${API_HOST:-0.0.0.0} --port ${API_PORT:-8000} --workers ${WORKERS:-4} --timeout-keep-alive ${WORKER_TIMEOUT:-120}"
+
+[tasks.test]
+description = "Run tests"
+run = "pytest tests/ -v"
+
+[tasks.lint]
+description = "Run linting"
+run = "ruff check app/ tests/ scripts/"
+
+[tasks.format]
+description = "Format code"
+run = "ruff format app/ tests/ scripts/"
+
+[tasks.pre-commit-install]
+description = "Install pre-commit hooks"
+run = "pre-commit install && pre-commit install --hook-type commit-msg"
+
+[tasks.pre-commit]
+description = "Run pre-commit on all files"
+run = "pre-commit run --all-files"
+
+[tasks.commit]
+description = "Create a semantic commit"
+run = "cz commit"
+
+[tasks.docker-build]
+description = "Build Docker image"
+run = "docker build -t cabreraevil/python-template:latest ."
+
+[tasks.docker-up]
+description = "Start Docker containers"
+run = "docker-compose up -d"
+
+[tasks.docker-down]
+description = "Stop Docker containers"
+run = "docker-compose down"
