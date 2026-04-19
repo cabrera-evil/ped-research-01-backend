@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import router
 from app.core.config import get_settings
@@ -23,6 +24,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         version=settings.app_version,
         environment=settings.environment,
     )
+
+    # Preload sample products to demonstrate hash table behaviour on first load.
+    # Deliberate collisions:
+    #   P001 and P010 both hash to cell 5  (ASCII sum = 225, 225 % 10 = 5)
+    #   P002 and P020 both hash to cell 6  (ASCII sum = 226, 226 % 10 = 6)
+    from app.modules.inventory.schemas import ProductCreate
+    from app.modules.inventory.service import add_product
+
+    seed_products = [
+        ProductCreate(
+            code="P001", name="Laptop Stand", price=39.99, quantity=15, category="Electronics"
+        ),
+        ProductCreate(
+            code="P010", name="USB Hub", price=24.99, quantity=30, category="Electronics"
+        ),
+        ProductCreate(code="P002", name="Stapler", price=8.50, quantity=100, category="Office"),
+        ProductCreate(
+            code="P020", name="Tape Dispenser", price=5.99, quantity=80, category="Office"
+        ),
+        ProductCreate(
+            code="P003", name="Monitor", price=299.00, quantity=8, category="Electronics"
+        ),
+        ProductCreate(
+            code="P004", name="Keyboard", price=79.00, quantity=20, category="Electronics"
+        ),
+        ProductCreate(
+            code="P005", name="Floor Cleaner", price=12.00, quantity=50, category="Cleaning"
+        ),
+        ProductCreate(code="P006", name="Desk Lamp", price=45.00, quantity=12, category="Office"),
+    ]
+    for product in seed_products:
+        add_product(product)
+
+    logger.info("inventory_seeded", count=len(seed_products))
     yield
     logger.info("application_shutting_down")
 
@@ -67,17 +102,14 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 app.include_router(router, prefix=settings.api_prefix)
 
 
-@app.get("/", tags=["Root"])
-async def root() -> dict[str, str]:
-    return {
-        "message": f"Welcome to {settings.app_name}",
-        "version": settings.app_version,
-        "docs": "/docs",
-        "health": f"{settings.api_prefix}/health",
-    }
+@app.get("/", tags=["Root"], include_in_schema=False)
+async def root() -> FileResponse:
+    return FileResponse("static/index.html")
 
 
 if __name__ == "__main__":
