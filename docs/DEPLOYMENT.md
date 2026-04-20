@@ -1,16 +1,28 @@
 # Deployment
 
-## Docker image
-
-Build the image:
+## Docker Build
 
 ```bash
 make docker-build
-# or
+```
+
+Manual equivalent:
+
+```bash
 docker build -t cabreraevil/python-template:latest .
 ```
 
-Run the container:
+## Docker Compose Up/Down
+
+```bash
+make docker-up
+make docker-logs
+make docker-down
+```
+
+The service exposes `8000` and includes a healthcheck to `/api/v1/health`.
+
+## Single Container Run
 
 ```bash
 docker run -d \
@@ -21,21 +33,10 @@ docker run -d \
   cabreraevil/python-template:latest
 ```
 
-## Docker Compose
-
-```bash
-make docker-up
-make docker-logs
-make docker-down
-```
-
-The compose service exposes port `8000` and includes a healthcheck against `/api/v1/health`.
-
-## Environment variables
-
-At minimum, set:
+## Required Environment Variables
 
 - `APP_NAME`
+- `APP_VERSION`
 - `ENVIRONMENT`
 - `API_HOST`
 - `API_PORT`
@@ -43,11 +44,13 @@ At minimum, set:
 - `API_KEY`
 - `LOG_LEVEL`
 - `LOG_FORMAT`
+- `WORKERS`
+- `WORKER_TIMEOUT`
 
-Use `.env.example` as the baseline.
+Use `.env.example` as baseline values.
 
-## Production notes
+## Operational Notes
 
-- Run behind a reverse proxy/load balancer for TLS termination.
-- Rotate `API_KEY` and avoid committing secrets.
-- Keep `LOG_FORMAT=json` for structured logs in centralized logging systems.
+- Inventory data is in-memory; container/app restart resets data.
+- Startup seeds sample products to show hash collisions immediately.
+- Keep `API_KEY` private and rotate it for shared environments.

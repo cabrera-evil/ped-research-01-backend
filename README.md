@@ -1,67 +1,92 @@
-# python-template
+# PED Research 01 Backend
 
-Reusable Python boilerplate for API and script projects.
+FastAPI backend for the hash-table assignment demo (`c) Programa base ejemplo`).
 
-## What this template includes
+## Selected Structure
 
-- FastAPI starter with modular routing
-- Public health endpoint and protected sample endpoint (`X-API-Key`)
-- Generic CLI script scaffold in `scripts/template_cli.py`
-- Docker + Docker Compose setup
-- `mise` tasks and `Makefile` commands
-- Ruff, mypy, pytest, pre-commit, Commitizen
-- Minimal docs for quickstart, development, and deployment
+- Structure: **Hash Table with separate chaining**
+- Implementation: `app/core/hash_table.py`
+- Hash function: `sum(ord(c) for c in key) % table_size`
+- Collision strategy: each bucket stores a chain (`list[(key, value)]`)
 
-## Project structure
+## What This App Demonstrates
 
-```text
-python-template/
-├── app/
-│   ├── main.py
-│   ├── api/v1/router.py
-│   ├── core/                 # config + security
-│   ├── modules/system/       # starter endpoints
-│   ├── shared/               # shared schemas
-│   └── utils/                # logging
-├── scripts/template_cli.py
-├── tests/test_api.py
-├── Dockerfile
-├── docker-compose.yml
-├── Makefile
-├── mise.toml
-└── docs/
-```
+Small inventory application where product `code` is the hash key:
 
-## Quick start
+- Insert / update product
+- Search product by code
+- Delete product
+- List all products
+- Inspect hash internals (`load_factor`, `distribution`, `cells_with_collision`)
+
+On startup, the app seeds products with deliberate collisions:
+
+- `P001` and `P010` collide
+- `P002` and `P020` collide
+
+This makes collision behavior observable immediately through `/api/v1/inventory/stats/hash`.
+
+## Run Locally
 
 ```bash
 cp .env.example .env
+make setup
+source .venv/bin/activate
 make install-dev
 make run
 ```
 
-Then open:
+Open:
 
-- Swagger UI: http://localhost:8000/docs
-- Health: http://localhost:8000/api/v1/health
+- App root: <http://localhost:8000/>
+- Swagger: <http://localhost:8000/docs>
+- Health: <http://localhost:8000/api/v1/health>
 
-Protected endpoint example:
-
-```bash
-curl -H "X-API-Key: apikey" http://localhost:8000/api/v1/ping
-```
-
-## Useful commands
+## Run With Docker
 
 ```bash
-make format
-make lint
-make test
 make docker-build
 make docker-up
+make docker-logs
 ```
 
-## Notes
+Stop:
 
-- Default Docker image/tag: `cabreraevil/python-template:latest`
-- Existing publish workflow under `.github/workflows/publish-dockerhub.yaml` is intentionally kept as-is.
+```bash
+make docker-down
+```
+
+## API Endpoints
+
+- `GET /api/v1/health`
+- `GET /api/v1/ping` (requires `X-API-Key`)
+- `POST /api/v1/inventory/` (add/update)
+- `GET /api/v1/inventory/` (list)
+- `GET /api/v1/inventory/{code}` (search)
+- `DELETE /api/v1/inventory/{code}` (delete)
+- `GET /api/v1/inventory/stats/hash` (hash table metrics)
+
+## Quick Demo (Evidence of Functioning)
+
+```bash
+# 1) View initial hash stats (after seeded data with collisions)
+curl -s http://localhost:8000/api/v1/inventory/stats/hash
+
+# 2) Read product by key
+curl -s http://localhost:8000/api/v1/inventory/P001
+
+# 3) Update same key (insert acts as upsert)
+curl -s -X POST http://localhost:8000/api/v1/inventory/ \
+  -H "Content-Type: application/json" \
+  -d '{"code":"P001","name":"Laptop Stand PRO","price":49.99,"quantity":10,"category":"Electronics"}'
+
+# 4) Delete key
+curl -s -X DELETE http://localhost:8000/api/v1/inventory/P001
+```
+
+## Docs
+
+- `docs/QUICKSTART.md`
+- `docs/HASH_TABLE.md`
+- `docs/DEVELOPMENT.md`
+- `docs/DEPLOYMENT.md`
